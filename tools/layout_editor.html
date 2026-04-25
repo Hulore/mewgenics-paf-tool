@@ -108,7 +108,7 @@
 
     .layer-toggle {
       display: grid;
-      grid-template-columns: 22px 1fr;
+      grid-template-columns: 22px minmax(0, 1fr) 26px 26px;
       gap: 8px;
       align-items: center;
       padding: 4px;
@@ -126,6 +126,15 @@
       width: 16px;
       height: 16px;
       padding: 0;
+    }
+
+    .mini-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      line-height: 1;
+      text-align: center;
+      font-size: 14px;
     }
 
     button,
@@ -159,7 +168,7 @@
 
     .grid2 {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -203,6 +212,10 @@
         Layer
         <select id="layerSelect"></select>
       </label>
+      <div class="grid2">
+        <button id="moveForwardBtn" type="button">Move forward</button>
+        <button id="moveBackwardBtn" type="button">Move backward</button>
+      </div>
       <div>
         <div class="stage-label">Layer visibility</div>
         <div id="layerList" class="layer-list"></div>
@@ -241,6 +254,8 @@
       rotation: document.querySelector("#rotation"),
       visible: document.querySelector("#visible")
     };
+    const moveForwardBtn = document.querySelector("#moveForwardBtn");
+    const moveBackwardBtn = document.querySelector("#moveBackwardBtn");
 
     const stageScale = 3;
     let selectedId = null;
@@ -271,6 +286,16 @@
       return rules.layers.find(layer => layer.id === id);
     }
 
+    function moveLayer(id, direction) {
+      const index = rules.layers.findIndex(layer => layer.id === id);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= rules.layers.length) return;
+      const [layer] = rules.layers.splice(index, 1);
+      rules.layers.splice(nextIndex, 0, layer);
+      selectedId = id;
+      render();
+    }
+
     function render() {
       stage.innerHTML = "";
       layerSelect.innerHTML = "";
@@ -296,13 +321,33 @@
         });
         const toggleText = document.createElement("span");
         toggleText.textContent = layer.label || layer.id;
+        const upButton = document.createElement("button");
+        upButton.type = "button";
+        upButton.className = "mini-btn";
+        upButton.textContent = "↑";
+        upButton.title = "Move layer forward";
+        upButton.disabled = index === rules.layers.length - 1;
+        upButton.addEventListener("click", event => {
+          event.stopPropagation();
+          moveLayer(layer.id, 1);
+        });
+        const downButton = document.createElement("button");
+        downButton.type = "button";
+        downButton.className = "mini-btn";
+        downButton.textContent = "↓";
+        downButton.title = "Move layer backward";
+        downButton.disabled = index === 0;
+        downButton.addEventListener("click", event => {
+          event.stopPropagation();
+          moveLayer(layer.id, -1);
+        });
         toggle.addEventListener("click", event => {
-          if (event.target !== checkbox) {
+          if (event.target !== checkbox && event.target !== upButton && event.target !== downButton) {
             selectedId = layer.id;
             render();
           }
         });
-        toggle.append(checkbox, toggleText);
+        toggle.append(checkbox, toggleText, upButton, downButton);
         layerList.append(toggle);
 
         const el = document.createElement("div");
@@ -332,6 +377,9 @@
     function syncControls() {
       const layer = layerById(selectedId);
       if (!layer) return;
+      const index = rules.layers.findIndex(item => item.id === selectedId);
+      moveBackwardBtn.disabled = index <= 0;
+      moveForwardBtn.disabled = index >= rules.layers.length - 1;
       fields.x.value = layer.x || 0;
       fields.y.value = layer.y || 0;
       fields.scaleX.value = layer.scaleX ?? 1;
@@ -356,6 +404,9 @@
       selectedId = layerSelect.value;
       render();
     });
+
+    moveForwardBtn.addEventListener("click", () => moveLayer(selectedId, 1));
+    moveBackwardBtn.addEventListener("click", () => moveLayer(selectedId, -1));
 
     Object.values(fields).forEach(input => input.addEventListener("input", updateSelected));
 
