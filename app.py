@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -105,7 +106,7 @@ class App(QWidget):
         self.resize(760, 430)
 
         self.class_combo = QComboBox()
-        self.class_combo.addItem("butcher")
+        self.load_classes()
 
         self.file_list = QListWidget()
         self.file_list.setAlternatingRowColors(True)
@@ -119,6 +120,17 @@ class App(QWidget):
         self.status.setWordWrap(True)
 
         self._build_ui()
+
+    def load_classes(self) -> None:
+        self.class_combo.clear()
+        try:
+            rules = json.loads(self.rules_path.read_text(encoding="utf-8"))
+            class_names = list(rules.get("classes", {}))
+        except Exception:
+            class_names = ["butcher"]
+
+        for class_name in class_names:
+            self.class_combo.addItem(class_name.title(), class_name)
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -281,7 +293,7 @@ class App(QWidget):
             QMessageBox.critical(self, APP_TITLE, "Add at least one main picture SVG.")
             return
 
-        class_name = self.class_combo.currentText()
+        class_name = self.class_combo.currentData() or self.class_combo.currentText().lower()
         output_dir_text = self.output_dir_input.text().strip()
         output_dir = Path(output_dir_text) if output_dir_text else None
         generated = []

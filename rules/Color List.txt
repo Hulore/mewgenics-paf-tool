@@ -1,13 +1,12 @@
-Butcher:
-Cleric:
-Druid:
-Fighter:
-Hunter:
-Jester:
-Mage:
-Monk:
-Necromancer:
-Psychic:
-Tank:
-Thief:
-Tinkerer:
+Butcher: ac4457
+Cleric: fdfdfd
+Druid: 5b4237
+Fighter: b17373
+Hunter: 425d3d
+Mage: 787899
+Monk: 787878
+Necromancer: 232425
+Psychic: 645379
+Tank: 645379
+Thief: 645379
+Tinkerer: b5eadc
