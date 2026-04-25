@@ -98,6 +98,36 @@
       gap: 10px;
     }
 
+    .layer-list {
+      display: grid;
+      gap: 6px;
+      padding: 8px;
+      border: 1px solid #444850;
+      background: #202228;
+    }
+
+    .layer-toggle {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 4px;
+      border-radius: 4px;
+      color: #d6d7dc;
+      cursor: pointer;
+    }
+
+    .layer-toggle:hover,
+    .layer-toggle.active {
+      background: #343842;
+    }
+
+    .layer-toggle input {
+      width: 16px;
+      height: 16px;
+      padding: 0;
+    }
+
     button,
     select,
     input,
@@ -173,6 +203,10 @@
         Layer
         <select id="layerSelect"></select>
       </label>
+      <div>
+        <div class="stage-label">Layer visibility</div>
+        <div id="layerList" class="layer-list"></div>
+      </div>
       <label>
         Main picture preview
         <input id="mainFile" type="file" accept=".svg,image/svg+xml">
@@ -197,6 +231,7 @@
   <script>
     const stage = document.querySelector("#stage");
     const layerSelect = document.querySelector("#layerSelect");
+    const layerList = document.querySelector("#layerList");
     const jsonBox = document.querySelector("#jsonBox");
     const fields = {
       x: document.querySelector("#x"),
@@ -239,12 +274,36 @@
     function render() {
       stage.innerHTML = "";
       layerSelect.innerHTML = "";
+      layerList.innerHTML = "";
 
       rules.layers.forEach((layer, index) => {
         const option = document.createElement("option");
         option.value = layer.id;
         option.textContent = layer.label || layer.id;
         layerSelect.append(option);
+
+        const toggle = document.createElement("label");
+        toggle.className = "layer-toggle";
+        if (layer.id === selectedId) toggle.classList.add("active");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = layer.visible !== false;
+        checkbox.addEventListener("change", event => {
+          event.stopPropagation();
+          layer.visible = checkbox.checked;
+          selectedId = layer.id;
+          render();
+        });
+        const toggleText = document.createElement("span");
+        toggleText.textContent = layer.label || layer.id;
+        toggle.addEventListener("click", event => {
+          if (event.target !== checkbox) {
+            selectedId = layer.id;
+            render();
+          }
+        });
+        toggle.append(checkbox, toggleText);
+        layerList.append(toggle);
 
         const el = document.createElement("div");
         el.className = "layer";
