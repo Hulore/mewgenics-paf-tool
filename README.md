@@ -21,6 +21,7 @@ H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\dist\Mewgenics 
 ```
 
 The app lets you select a main picture SVG, choose a class, and save the generated SVG.
+You can also drag and drop the main picture SVG into the app window.
 
 1. Open the visual editor:
 
@@ -44,6 +45,7 @@ python scripts\generate_from_rules.py `
 Build the desktop app:
 
 ```powershell
+python -m pip install -r requirements.txt
 python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Mewgenics PAF Tool" app.py
 ```
 
