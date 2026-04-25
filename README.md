@@ -14,6 +14,14 @@ Initial repository setup.
 
 Manual layout workflow:
 
+Run the desktop app:
+
+```text
+H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\dist\Mewgenics PAF Tool.exe
+```
+
+The app lets you select a main picture SVG, choose a class, and save the generated SVG.
+
 1. Open the visual editor:
 
 ```text
@@ -31,6 +39,12 @@ python scripts\generate_from_rules.py `
   --main-svg "H:\Mewgenics Projects\Passive Abilities Frame\Gamefiles\testPassiveOrigSVG\196(mainpicture).svg" `
   --class-name butcher `
   --output output\manual_butcher.svg
+```
+
+Build the desktop app:
+
+```powershell
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Mewgenics PAF Tool" app.py
 ```
 
 Older FFDec timeline prototype:
