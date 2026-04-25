@@ -20,8 +20,8 @@ Run the desktop app:
 H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\dist\Mewgenics PAF Tool.exe
 ```
 
-The app lets you select a main picture SVG, choose a class, and save the generated SVG.
-You can also drag and drop the main picture SVG into the app window.
+The app lets you select main picture SVG files, choose a class, and generate SVG outputs.
+You can also drag and drop one or many main picture SVG files into the app window.
 
 1. Open the visual editor:
 
