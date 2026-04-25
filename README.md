@@ -22,7 +22,7 @@ H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\dist\Mewgenics 
 
 The app lets you select main picture SVG files, choose a class, and generate SVG outputs.
 You can also drag and drop one or many main picture SVG files into the app window.
-Use the `Adjust main picture` tab to fine-tune a single problem SVG before saving it.
+Use the `Adjust main picture` tab to fine-tune a single problem SVG before saving it. The main picture can be dragged in the preview or adjusted with numeric fields.
 
 1. Open the visual editor:
 

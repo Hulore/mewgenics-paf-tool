@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QApplication,
@@ -98,6 +98,45 @@ class DropArea(QFrame):
         self.style().polish(self)
 
 
+class DraggableSvgPreview(QSvgWidget):
+    dragged = Signal(float, float)
+
+    def __init__(self, canvas_width: float, canvas_height: float) -> None:
+        super().__init__()
+        self.canvas_width = canvas_width
+        self.canvas_height = canvas_height
+        self.last_pos = None
+        self.setCursor(Qt.OpenHandCursor)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton:
+            self.last_pos = event.position()
+            self.setCursor(Qt.ClosedHandCursor)
+            event.accept()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self.last_pos is None:
+            return
+
+        current_pos = event.position()
+        delta = current_pos - self.last_pos
+        self.last_pos = current_pos
+        scale = self.preview_scale()
+        self.dragged.emit(delta.x() / scale, delta.y() / scale)
+        event.accept()
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton:
+            self.last_pos = None
+            self.setCursor(Qt.OpenHandCursor)
+            event.accept()
+
+    def preview_scale(self) -> float:
+        if self.canvas_width <= 0 or self.canvas_height <= 0:
+            return 1
+        return max(0.01, min(self.width() / self.canvas_width, self.height() / self.canvas_height))
+
+
 class App(QWidget):
     def __init__(self) -> None:
         super().__init__()
@@ -126,9 +165,11 @@ class App(QWidget):
         self.adjust_main_input.setPlaceholderText("Select or drop one main picture SVG")
         self.adjust_output_input = QLineEdit()
         self.adjust_output_input.setPlaceholderText("Adjusted SVG output path")
-        self.preview = QSvgWidget()
+        canvas = self.rules.get("canvas", {})
+        self.preview = DraggableSvgPreview(float(canvas.get("width", 147)), float(canvas.get("height", 92)))
         self.preview.setObjectName("preview")
         self.preview.setMinimumSize(441, 276)
+        self.preview.dragged.connect(self.drag_main_picture)
 
         self.x_spin = self.make_spin(-300, 300, self.default_main_value("x", 37))
         self.y_spin = self.make_spin(-300, 300, self.default_main_value("y", 26))
@@ -502,6 +543,15 @@ class App(QWidget):
                 "scaleY": self.scale_y_spin.value(),
             }
         }
+
+    def drag_main_picture(self, dx: float, dy: float) -> None:
+        self.x_spin.blockSignals(True)
+        self.y_spin.blockSignals(True)
+        self.x_spin.setValue(self.x_spin.value() + dx)
+        self.y_spin.setValue(self.y_spin.value() + dy)
+        self.x_spin.blockSignals(False)
+        self.y_spin.blockSignals(False)
+        self.update_adjust_preview()
 
     def update_adjust_preview(self) -> None:
         main_svg = Path(self.adjust_main_input.text().strip())
