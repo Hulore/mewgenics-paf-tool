@@ -10,3 +10,18 @@ Mewgenics stores passive ability icons as multiple pieces: background, main artw
 
 Initial repository setup.
 
+## Prototype
+
+Build the current butcher passive icon prototype:
+
+```powershell
+python scripts\build_butcher_prototype.py `
+  --test-svg-dir "H:\Mewgenics Projects\Passive Abilities Frame\Gamefiles\testPassiveOrigSVG" `
+  --reference "H:\Mewgenics Projects\Passive Abilities Frame\reference\Butcher Passive gameframe-Photoroom.png"
+```
+
+Generated files are written to `output/`:
+
+- `butcher_prototype.svg`
+- `butcher_compare.html`
+
