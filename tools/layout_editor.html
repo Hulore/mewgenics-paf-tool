@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mewgenics PAF Layout Editor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      background: #1f2023;
+      color: #eeeeee;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(520px, 1fr) 360px;
+    }
+
+    main {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    aside {
+      border-left: 1px solid #3d3f45;
+      padding: 16px;
+      background: #27292f;
+      overflow: auto;
+      max-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .stage-row {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .stage-shell {
+      display: grid;
+      gap: 8px;
+    }
+
+    .stage-label {
+      color: #c8cad0;
+      font-size: 13px;
+    }
+
+    #stage,
+    .reference {
+      position: relative;
+      width: 441px;
+      height: 276px;
+      background:
+        linear-gradient(45deg, #303238 25%, transparent 25%),
+        linear-gradient(-45deg, #303238 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #303238 75%),
+        linear-gradient(-45deg, transparent 75%, #303238 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      border: 1px solid #555861;
+      overflow: hidden;
+    }
+
+    .reference img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      cursor: move;
+      user-select: none;
+    }
+
+    .layer img {
+      display: block;
+      pointer-events: none;
+    }
+
+    .layer.selected {
+      outline: 1px dashed #65d6ff;
+      outline-offset: 2px;
+    }
+
+    .toolbar,
+    .panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    button,
+    select,
+    input,
+    textarea {
+      box-sizing: border-box;
+      border: 1px solid #555861;
+      background: #1d1f24;
+      color: #f2f2f2;
+      border-radius: 4px;
+      padding: 8px;
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      background: #343842;
+    }
+
+    button:hover {
+      background: #414754;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: #d6d7dc;
+      font-size: 13px;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 190px;
+      resize: vertical;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .hint {
+      color: #aeb2bd;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="stage-row">
+      <div class="stage-shell">
+        <div class="stage-label">Generated layout</div>
+        <div id="stage"></div>
+      </div>
+      <div class="stage-shell">
+        <div class="stage-label">Reference</div>
+        <div class="reference">
+          <img src="../../reference/Butcher%20Passive%20gameframe-Photoroom.png" alt="">
+        </div>
+      </div>
+    </div>
+    <div class="hint">
+      Drag layers on the left. Use the controls for exact values. Export JSON when it matches the reference.
+    </div>
+  </main>
+
+  <aside>
+    <div class="toolbar">
+      <label>
+        Layer
+        <select id="layerSelect"></select>
+      </label>
+      <label>
+        Main picture preview
+        <input id="mainFile" type="file" accept=".svg,image/svg+xml">
+      </label>
+      <div class="grid2">
+        <label>X <input id="x" type="number" step="0.25"></label>
+        <label>Y <input id="y" type="number" step="0.25"></label>
+        <label>Scale X <input id="scaleX" type="number" step="0.01"></label>
+        <label>Scale Y <input id="scaleY" type="number" step="0.01"></label>
+        <label>Rotate <input id="rotation" type="number" step="0.25"></label>
+        <label>Visible <input id="visible" type="checkbox"></label>
+      </div>
+      <button id="exportBtn">Export JSON</button>
+      <button id="importBtn">Import JSON</button>
+      <textarea id="jsonBox" spellcheck="false"></textarea>
+      <div class="hint">
+        Save the exported JSON into <code>rules/butcher_manual.json</code>, then run <code>scripts/generate_from_rules.py</code>.
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const stage = document.querySelector("#stage");
+    const layerSelect = document.querySelector("#layerSelect");
+    const jsonBox = document.querySelector("#jsonBox");
+    const fields = {
+      x: document.querySelector("#x"),
+      y: document.querySelector("#y"),
+      scaleX: document.querySelector("#scaleX"),
+      scaleY: document.querySelector("#scaleY"),
+      rotation: document.querySelector("#rotation"),
+      visible: document.querySelector("#visible")
+    };
+
+    const stageScale = 3;
+    let selectedId = null;
+    let drag = null;
+    let mainPreviewUrl = null;
+
+    let rules = {
+      canvas: { width: 147, height: 92, viewBox: "0 0 147 92" },
+      classes: { butcher: { color: "#b64055" } },
+      layers: [
+        { id: "class_back", label: "Class back frame", source: "../../Gamefiles/testPassiveOrigSVG/2844(blackpartframe)/shapes/2844.svg", x: 24, y: 20, scaleX: 1, scaleY: 1, rotation: 0, visible: true, recolor: { "#111111": "$classColor" } },
+        { id: "side_frame", label: "Class side frame", source: "../../Gamefiles/testPassiveOrigSVG/2845(blacksideframe)/shapes/2845.svg", x: 18, y: 22, scaleX: 1, scaleY: 1, rotation: 0, visible: true, recolor: { "#111111": "$classColor" } },
+        { id: "white_outer", label: "White outer frame", source: "../../Gamefiles/testPassiveOrigSVG/2841(whitepartframe)/shapes/2841.svg", x: 23, y: 18, scaleX: 1, scaleY: 1, rotation: 0, visible: true },
+        { id: "icon_background", label: "Icon background", source: "../../Gamefiles/testPassiveOrigSVG/1WhiteBackground.svg", x: 35, y: 26, scaleX: 1, scaleY: 1, rotation: 0, visible: true },
+        { id: "main_picture", label: "Main picture", source: "$main", x: 37, y: 26, scaleX: 1, scaleY: 1, rotation: 0, visible: true },
+        { id: "black_frame", label: "Black frame", source: "../../Gamefiles/testPassiveOrigSVG/3(BlackFrame).svg", x: 32, y: 23, scaleX: 1, scaleY: 1, rotation: 0, visible: true }
+      ]
+    };
+
+    function editorSrc(source) {
+      if (source === "$main") {
+        return mainPreviewUrl || "../../Gamefiles/testPassiveOrigSVG/196(mainpicture).svg";
+      }
+      return source;
+    }
+
+    function layerById(id) {
+      return rules.layers.find(layer => layer.id === id);
+    }
+
+    function render() {
+      stage.innerHTML = "";
+      layerSelect.innerHTML = "";
+
+      rules.layers.forEach((layer, index) => {
+        const option = document.createElement("option");
+        option.value = layer.id;
+        option.textContent = layer.label || layer.id;
+        layerSelect.append(option);
+
+        const el = document.createElement("div");
+        el.className = "layer";
+        el.dataset.id = layer.id;
+        el.style.zIndex = index + 1;
+        el.style.display = layer.visible === false ? "none" : "block";
+        el.style.transform = `translate(${layer.x * stageScale}px, ${layer.y * stageScale}px) rotate(${layer.rotation || 0}deg) scale(${layer.scaleX || 1}, ${layer.scaleY || 1})`;
+        if (layer.id === selectedId) el.classList.add("selected");
+
+        const img = document.createElement("img");
+        img.src = editorSrc(layer.source);
+        img.draggable = false;
+        img.style.width = "auto";
+        img.style.height = "auto";
+        img.style.transform = `scale(${stageScale})`;
+        img.style.transformOrigin = "0 0";
+        el.append(img);
+        stage.append(el);
+      });
+
+      if (!selectedId && rules.layers.length) selectedId = rules.layers[0].id;
+      layerSelect.value = selectedId;
+      syncControls();
+    }
+
+    function syncControls() {
+      const layer = layerById(selectedId);
+      if (!layer) return;
+      fields.x.value = layer.x || 0;
+      fields.y.value = layer.y || 0;
+      fields.scaleX.value = layer.scaleX ?? 1;
+      fields.scaleY.value = layer.scaleY ?? 1;
+      fields.rotation.value = layer.rotation || 0;
+      fields.visible.checked = layer.visible !== false;
+    }
+
+    function updateSelected() {
+      const layer = layerById(selectedId);
+      if (!layer) return;
+      layer.x = Number(fields.x.value);
+      layer.y = Number(fields.y.value);
+      layer.scaleX = Number(fields.scaleX.value);
+      layer.scaleY = Number(fields.scaleY.value);
+      layer.rotation = Number(fields.rotation.value);
+      layer.visible = fields.visible.checked;
+      render();
+    }
+
+    layerSelect.addEventListener("change", () => {
+      selectedId = layerSelect.value;
+      render();
+    });
+
+    Object.values(fields).forEach(input => input.addEventListener("input", updateSelected));
+
+    stage.addEventListener("pointerdown", event => {
+      const el = event.target.closest(".layer");
+      if (!el) return;
+      selectedId = el.dataset.id;
+      const layer = layerById(selectedId);
+      drag = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        layerX: layer.x || 0,
+        layerY: layer.y || 0
+      };
+      el.setPointerCapture(event.pointerId);
+      render();
+    });
+
+    stage.addEventListener("pointermove", event => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const layer = layerById(selectedId);
+      layer.x = Math.round((drag.layerX + (event.clientX - drag.startX) / stageScale) * 4) / 4;
+      layer.y = Math.round((drag.layerY + (event.clientY - drag.startY) / stageScale) * 4) / 4;
+      render();
+    });
+
+    stage.addEventListener("pointerup", () => {
+      drag = null;
+    });
+
+    document.querySelector("#exportBtn").addEventListener("click", () => {
+      jsonBox.value = JSON.stringify(rules, null, 2);
+      jsonBox.select();
+    });
+
+    document.querySelector("#importBtn").addEventListener("click", () => {
+      rules = JSON.parse(jsonBox.value);
+      selectedId = rules.layers[0]?.id || null;
+      render();
+    });
+
+    document.querySelector("#mainFile").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (mainPreviewUrl) URL.revokeObjectURL(mainPreviewUrl);
+      mainPreviewUrl = URL.createObjectURL(file);
+      render();
+    });
+
+    jsonBox.value = JSON.stringify(rules, null, 2);
+    selectedId = rules.layers[0].id;
+    render();
+  </script>
+</body>
+</html>

@@ -12,7 +12,28 @@ Initial repository setup.
 
 ## Prototype
 
-Build the current butcher passive icon prototype:
+Manual layout workflow:
+
+1. Open the visual editor:
+
+```text
+H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\tools\layout_editor.html
+```
+
+2. Move and scale layers until the generated layout matches the reference.
+3. Click `Export JSON`.
+4. Save the exported JSON into `rules/butcher_manual.json`.
+5. Generate the final SVG:
+
+```powershell
+python scripts\generate_from_rules.py `
+  --rules rules\butcher_manual.json `
+  --main-svg "H:\Mewgenics Projects\Passive Abilities Frame\Gamefiles\testPassiveOrigSVG\196(mainpicture).svg" `
+  --class-name butcher `
+  --output output\manual_butcher.svg
+```
+
+Older FFDec timeline prototype:
 
 ```powershell
 python scripts\build_butcher_prototype.py `
