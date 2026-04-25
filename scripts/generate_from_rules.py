@@ -30,8 +30,25 @@ def resolve_source(source: str, rules_dir: Path, main_svg: Path) -> Path:
     return path
 
 
-def build(rules_path: Path, main_svg: Path, class_name: str, output: Path) -> None:
+def build(
+    rules_path: Path,
+    main_svg: Path,
+    class_name: str,
+    output: Path,
+    layer_overrides: dict[str, dict[str, float]] | None = None,
+) -> None:
     rules = json.loads(rules_path.read_text(encoding="utf-8"))
+    build_from_rules(rules, rules_path.parent, main_svg, class_name, output, layer_overrides)
+
+
+def build_from_rules(
+    rules: dict,
+    rules_dir: Path,
+    main_svg: Path,
+    class_name: str,
+    output: Path,
+    layer_overrides: dict[str, dict[str, float]] | None = None,
+) -> None:
     class_data = rules.get("classes", {}).get(class_name)
     if class_data is None:
         known = ", ".join(sorted(rules.get("classes", {})))
@@ -52,8 +69,11 @@ def build(rules_path: Path, main_svg: Path, class_name: str, output: Path) -> No
     for layer in rules["layers"]:
         if not layer.get("visible", True):
             continue
+        layer = deepcopy(layer)
+        if layer_overrides and layer["id"] in layer_overrides:
+            layer.update(layer_overrides[layer["id"]])
 
-        source = resolve_source(layer["source"], rules_path.parent, main_svg)
+        source = resolve_source(layer["source"], rules_dir, main_svg)
         if not source.exists():
             raise FileNotFoundError(source)
 
@@ -95,4 +115,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -6,9 +6,11 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDoubleSpinBox,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QMessageBox,
     QPushButton,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -40,20 +43,20 @@ def project_root() -> Path:
 class DropArea(QFrame):
     filesDropped = Signal(list)
 
-    def __init__(self) -> None:
+    def __init__(self, title_text: str, subtitle_text: str) -> None:
         super().__init__()
         self.setAcceptDrops(True)
         self.setObjectName("dropArea")
-        self.setMinimumHeight(118)
+        self.setMinimumHeight(104)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignCenter)
 
-        title = QLabel("Drop main picture SVG files here")
+        title = QLabel(title_text)
         title.setObjectName("dropTitle")
         title.setAlignment(Qt.AlignCenter)
 
-        subtitle = QLabel("single file or a whole batch")
+        subtitle = QLabel(subtitle_text)
         subtitle.setObjectName("dropSubtitle")
         subtitle.setAlignment(Qt.AlignCenter)
 
@@ -100,13 +103,17 @@ class App(QWidget):
         super().__init__()
         self.root_dir = project_root()
         self.rules_path = self.root_dir / "rules" / "butcher_manual.json"
+        self.preview_path = self.root_dir / ".cache" / "adjust_preview.svg"
+        self.rules = self.load_rules()
 
         self.setWindowTitle(APP_TITLE)
-        self.setMinimumSize(680, 390)
-        self.resize(760, 430)
+        self.setMinimumSize(760, 560)
+        self.resize(880, 640)
 
         self.class_combo = QComboBox()
-        self.load_classes()
+        self.adjust_class_combo = QComboBox()
+        self.populate_class_combo(self.class_combo)
+        self.populate_class_combo(self.adjust_class_combo)
 
         self.file_list = QListWidget()
         self.file_list.setAlternatingRowColors(True)
@@ -115,33 +122,75 @@ class App(QWidget):
         self.output_dir_input = QLineEdit()
         self.output_dir_input.setPlaceholderText("Optional. Empty means save next to each source file.")
 
+        self.adjust_main_input = QLineEdit()
+        self.adjust_main_input.setPlaceholderText("Select or drop one main picture SVG")
+        self.adjust_output_input = QLineEdit()
+        self.adjust_output_input.setPlaceholderText("Adjusted SVG output path")
+        self.preview = QSvgWidget()
+        self.preview.setObjectName("preview")
+        self.preview.setMinimumSize(441, 276)
+
+        self.x_spin = self.make_spin(-300, 300, self.default_main_value("x", 37))
+        self.y_spin = self.make_spin(-300, 300, self.default_main_value("y", 26))
+        self.scale_x_spin = self.make_spin(0.05, 5, self.default_main_value("scaleX", 1))
+        self.scale_y_spin = self.make_spin(0.05, 5, self.default_main_value("scaleY", 1))
+
         self.status = QLabel(f"Rules: {self.rules_path}")
         self.status.setObjectName("status")
         self.status.setWordWrap(True)
 
         self._build_ui()
 
-    def load_classes(self) -> None:
-        self.class_combo.clear()
+    def load_rules(self) -> dict:
         try:
-            rules = json.loads(self.rules_path.read_text(encoding="utf-8"))
-            class_names = list(rules.get("classes", {}))
+            return json.loads(self.rules_path.read_text(encoding="utf-8"))
         except Exception:
-            class_names = ["butcher"]
+            return {"classes": {"butcher": {"color": "#ac4457"}}, "layers": []}
 
-        for class_name in class_names:
-            self.class_combo.addItem(class_name.title(), class_name)
+    def populate_class_combo(self, combo: QComboBox) -> None:
+        combo.clear()
+        for class_name in self.rules.get("classes", {}) or {"butcher": {}}:
+            combo.addItem(class_name.title(), class_name)
+
+    def default_main_value(self, key: str, fallback: float) -> float:
+        for layer in self.rules.get("layers", []):
+            if layer.get("id") == "main_picture":
+                return float(layer.get(key, fallback))
+        return fallback
+
+    def make_spin(self, minimum: float, maximum: float, value: float) -> QDoubleSpinBox:
+        spin = QDoubleSpinBox()
+        spin.setRange(minimum, maximum)
+        spin.setDecimals(3)
+        spin.setSingleStep(0.25)
+        spin.setValue(value)
+        spin.valueChanged.connect(self.update_adjust_preview)
+        return spin
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
         root.setContentsMargins(22, 22, 22, 22)
-        root.setSpacing(16)
+        root.setSpacing(14)
 
         header = QLabel(APP_TITLE)
         header.setObjectName("header")
         root.addWidget(header)
 
-        drop_area = DropArea()
+        tabs = QTabWidget()
+        tabs.addTab(self.build_batch_tab(), "Batch generate")
+        tabs.addTab(self.build_adjust_tab(), "Adjust main picture")
+        root.addWidget(tabs)
+
+        root.addWidget(self.status)
+        self.apply_styles()
+
+    def build_batch_tab(self) -> QWidget:
+        tab = QWidget()
+        root = QVBoxLayout(tab)
+        root.setContentsMargins(0, 14, 0, 0)
+        root.setSpacing(14)
+
+        drop_area = DropArea("Drop main picture SVG files here", "single file or a whole batch")
         drop_area.filesDropped.connect(self.add_main_svgs)
         root.addWidget(drop_area)
         root.addWidget(self.file_list)
@@ -167,7 +216,6 @@ class App(QWidget):
         output_button = QPushButton("Browse")
         output_button.clicked.connect(self.pick_output_dir)
         grid.addWidget(output_button, 2, 2)
-
         root.addLayout(grid)
 
         actions = QHBoxLayout()
@@ -178,8 +226,75 @@ class App(QWidget):
         actions.addWidget(generate_button)
         root.addLayout(actions)
 
-        root.addWidget(self.status)
+        return tab
 
+    def build_adjust_tab(self) -> QWidget:
+        tab = QWidget()
+        root = QVBoxLayout(tab)
+        root.setContentsMargins(0, 14, 0, 0)
+        root.setSpacing(14)
+
+        drop_area = DropArea("Drop one problem SVG here", "then adjust the main picture position")
+        drop_area.filesDropped.connect(self.set_adjust_svg_from_drop)
+        root.addWidget(drop_area)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(10)
+        grid.setColumnStretch(1, 1)
+
+        grid.addWidget(QLabel("Class"), 0, 0)
+        grid.addWidget(self.adjust_class_combo, 0, 1)
+        self.adjust_class_combo.currentIndexChanged.connect(self.update_adjust_preview)
+
+        grid.addWidget(QLabel("Main picture"), 1, 0)
+        grid.addWidget(self.adjust_main_input, 1, 1)
+        main_button = QPushButton("Browse")
+        main_button.clicked.connect(self.pick_adjust_svg)
+        grid.addWidget(main_button, 1, 2)
+
+        grid.addWidget(QLabel("Output SVG"), 2, 0)
+        grid.addWidget(self.adjust_output_input, 2, 1)
+        save_button = QPushButton("Save as")
+        save_button.clicked.connect(self.pick_adjust_output)
+        grid.addWidget(save_button, 2, 2)
+        root.addLayout(grid)
+
+        editor = QHBoxLayout()
+        editor.setSpacing(14)
+        editor.addWidget(self.preview, 1)
+
+        controls = QGridLayout()
+        controls.setHorizontalSpacing(8)
+        controls.setVerticalSpacing(8)
+        controls.addWidget(QLabel("X"), 0, 0)
+        controls.addWidget(self.x_spin, 0, 1)
+        controls.addWidget(QLabel("Y"), 1, 0)
+        controls.addWidget(self.y_spin, 1, 1)
+        controls.addWidget(QLabel("Scale X"), 2, 0)
+        controls.addWidget(self.scale_x_spin, 2, 1)
+        controls.addWidget(QLabel("Scale Y"), 3, 0)
+        controls.addWidget(self.scale_y_spin, 3, 1)
+
+        reset_button = QPushButton("Reset")
+        reset_button.clicked.connect(self.reset_adjust_values)
+        controls.addWidget(reset_button, 4, 0, 1, 2)
+
+        update_button = QPushButton("Update preview")
+        update_button.clicked.connect(self.update_adjust_preview)
+        controls.addWidget(update_button, 5, 0, 1, 2)
+
+        save_adjusted_button = QPushButton("Save adjusted SVG")
+        save_adjusted_button.setObjectName("generateButton")
+        save_adjusted_button.clicked.connect(self.save_adjusted_svg)
+        controls.addWidget(save_adjusted_button, 6, 0, 1, 2)
+        controls.setRowStretch(7, 1)
+        editor.addLayout(controls)
+        root.addLayout(editor, 1)
+
+        return tab
+
+    def apply_styles(self) -> None:
         self.setStyleSheet(
             """
             QWidget {
@@ -191,6 +306,22 @@ class App(QWidget):
             QLabel#header {
                 font-size: 20pt;
                 font-weight: 650;
+            }
+            QTabWidget::pane {
+                border: 0;
+            }
+            QTabBar::tab {
+                background: #ffffff;
+                border: 1px solid #c8ced8;
+                border-bottom-color: #bfc6d1;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                padding: 7px 14px;
+                margin-right: 4px;
+            }
+            QTabBar::tab:selected {
+                background: #fff5f7;
+                border-color: #ac4457;
             }
             QFrame#dropArea {
                 background: #ffffff;
@@ -210,17 +341,22 @@ class App(QWidget):
                 background: transparent;
                 color: #657080;
             }
-            QLineEdit, QComboBox, QListWidget {
+            QLineEdit, QComboBox, QListWidget, QDoubleSpinBox {
                 background: #ffffff;
                 border: 1px solid #c8ced8;
                 border-radius: 6px;
                 padding: 4px 8px;
             }
-            QLineEdit, QComboBox {
+            QLineEdit, QComboBox, QDoubleSpinBox {
                 min-height: 32px;
             }
             QListWidget {
                 min-height: 92px;
+            }
+            QSvgWidget#preview {
+                background: #ffffff;
+                border: 1px solid #c8ced8;
+                border-radius: 8px;
             }
             QPushButton {
                 background: #ffffff;
@@ -324,6 +460,91 @@ class App(QWidget):
         self.status.setText(f"Generated {len(generated)} file(s).")
         if generated:
             QMessageBox.information(self, APP_TITLE, f"Generated {len(generated)} file(s).")
+
+    def set_adjust_svg_from_drop(self, paths: list[str]) -> None:
+        if paths:
+            self.set_adjust_svg(paths[0])
+
+    def set_adjust_svg(self, path: str) -> None:
+        source = Path(path)
+        self.adjust_main_input.setText(str(source))
+        if not self.adjust_output_input.text().strip():
+            class_name = self.adjust_class_combo.currentData() or self.adjust_class_combo.currentText().lower()
+            self.adjust_output_input.setText(str(source.with_name(f"{source.stem}_{class_name}_adjusted_paf.svg")))
+        self.update_adjust_preview()
+
+    def pick_adjust_svg(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select main picture SVG",
+            str(self.root_dir),
+            "SVG files (*.svg);;All files (*.*)",
+        )
+        if path:
+            self.set_adjust_svg(path)
+
+    def pick_adjust_output(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save adjusted passive icon",
+            self.adjust_output_input.text().strip() or str(self.root_dir / "output" / "adjusted_paf.svg"),
+            "SVG files (*.svg);;All files (*.*)",
+        )
+        if path:
+            self.adjust_output_input.setText(path)
+
+    def main_picture_overrides(self) -> dict[str, dict[str, float]]:
+        return {
+            "main_picture": {
+                "x": self.x_spin.value(),
+                "y": self.y_spin.value(),
+                "scaleX": self.scale_x_spin.value(),
+                "scaleY": self.scale_y_spin.value(),
+            }
+        }
+
+    def update_adjust_preview(self) -> None:
+        main_svg = Path(self.adjust_main_input.text().strip())
+        if not main_svg.exists() or main_svg.suffix.lower() != ".svg":
+            return
+
+        class_name = self.adjust_class_combo.currentData() or self.adjust_class_combo.currentText().lower()
+        try:
+            build(self.rules_path, main_svg, class_name, self.preview_path, self.main_picture_overrides())
+        except Exception as exc:
+            self.status.setText(f"Preview failed: {exc}")
+            return
+
+        self.preview.load(str(self.preview_path))
+        self.status.setText(f"Preview: {main_svg.name}")
+
+    def reset_adjust_values(self) -> None:
+        self.x_spin.setValue(self.default_main_value("x", 37))
+        self.y_spin.setValue(self.default_main_value("y", 26))
+        self.scale_x_spin.setValue(self.default_main_value("scaleX", 1))
+        self.scale_y_spin.setValue(self.default_main_value("scaleY", 1))
+        self.update_adjust_preview()
+
+    def save_adjusted_svg(self) -> None:
+        main_svg = Path(self.adjust_main_input.text().strip())
+        output_text = self.adjust_output_input.text().strip()
+        if not main_svg.exists() or main_svg.suffix.lower() != ".svg":
+            QMessageBox.critical(self, APP_TITLE, "Select an existing main picture SVG.")
+            return
+        if not output_text:
+            QMessageBox.critical(self, APP_TITLE, "Choose output SVG path.")
+            return
+
+        class_name = self.adjust_class_combo.currentData() or self.adjust_class_combo.currentText().lower()
+        output = Path(output_text)
+        try:
+            build(self.rules_path, main_svg, class_name, output, self.main_picture_overrides())
+        except Exception as exc:
+            QMessageBox.critical(self, APP_TITLE, str(exc))
+            return
+
+        self.status.setText(f"Generated: {output}")
+        QMessageBox.information(self, APP_TITLE, f"Generated:\n{output}")
 
 
 def main() -> None:
