@@ -54,6 +54,23 @@
   },
   "layers": [
     {
+      "id": "upgrade_frame",
+      "label": "Upgrade top frame",
+      "source": "../../OtherGameFiles/UnpackedImportant/2756/shapes/2756.svg",
+      "x": 18.25,
+      "y": 0.25,
+      "scaleX": 1,
+      "scaleY": 1,
+      "rotation": 0,
+      "visible": true,
+      "matrix": {
+        "a": 1.1071625,
+        "b": -0.056030273,
+        "c": 0.036346436,
+        "d": 0.9984131
+      }
+    },
+    {
       "id": "icon_background",
       "label": "Icon background",
       "source": "../../Gamefiles/testPassiveOrigSVG/1WhiteBackground.svg",
@@ -85,23 +102,6 @@
       "scaleY": 0.96,
       "rotation": 0,
       "visible": true
-    },
-    {
-      "id": "upgrade_frame",
-      "label": "Upgrade top frame",
-      "source": "../../OtherGameFiles/UnpackedImportant/2756/shapes/2756.svg",
-      "x": 17.25,
-      "y": -11.7,
-      "scaleX": 1,
-      "scaleY": 1,
-      "rotation": 0,
-      "visible": true,
-      "matrix": {
-        "a": 1.1071625,
-        "b": -0.056030273,
-        "c": 0.036346436,
-        "d": 0.9984131
-      }
     },
     {
       "id": "class_back",
