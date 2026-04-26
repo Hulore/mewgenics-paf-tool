@@ -1,0 +1,135 @@
+{
+  "canvas": {
+    "width": 147,
+    "height": 92,
+    "viewBox": "0 0 147 92"
+  },
+  "classes": {
+    "butcher": {
+      "color": "#ac4457"
+    },
+    "cleric": {
+      "color": "#fdfdfd"
+    },
+    "druid": {
+      "color": "#5b4237"
+    },
+    "fighter": {
+      "color": "#b17373"
+    },
+    "hunter": {
+      "color": "#425d3d"
+    },
+    "mage": {
+      "color": "#787899"
+    },
+    "monk": {
+      "color": "#787878"
+    },
+    "necromancer": {
+      "color": "#232425"
+    },
+    "psychic": {
+      "color": "#645379"
+    },
+    "tank": {
+      "color": "#645379"
+    },
+    "thief": {
+      "color": "#645379"
+    },
+    "tinkerer": {
+      "color": "#b5eadc"
+    },
+    "coraless": {
+      "color": "#817b77",
+      "hide_layers": [
+        "side_frame"
+      ]
+    },
+    "jester": {
+      "color": "#817b77",
+      "shader": "jester_rainbow"
+    }
+  },
+  "layers": [
+    {
+      "id": "icon_background",
+      "label": "Icon background",
+      "source": "../../Gamefiles/testPassiveOrigSVG/1WhiteBackground.svg",
+      "x": 36.25,
+      "y": 22,
+      "scaleX": 1,
+      "scaleY": 1,
+      "rotation": 0,
+      "visible": true
+    },
+    {
+      "id": "main_picture",
+      "label": "Main picture",
+      "source": "$main",
+      "x": 37,
+      "y": 26,
+      "scaleX": 1,
+      "scaleY": 1,
+      "rotation": 0,
+      "visible": true
+    },
+    {
+      "id": "black_frame",
+      "label": "Black frame",
+      "source": "../../Gamefiles/testPassiveOrigSVG/3(BlackFrame).svg",
+      "x": 36.75,
+      "y": 23.5,
+      "scaleX": 0.98,
+      "scaleY": 0.96,
+      "rotation": 0,
+      "visible": true
+    },
+    {
+      "id": "upgrade_frame",
+      "label": "Upgrade top frame",
+      "source": "../../OtherGameFiles/UnpackedImportant/2756/shapes/2756.svg",
+      "x": 17.25,
+      "y": -11.7,
+      "scaleX": 1,
+      "scaleY": 1,
+      "rotation": 0,
+      "visible": true,
+      "matrix": {
+        "a": 1.1071625,
+        "b": -0.056030273,
+        "c": 0.036346436,
+        "d": 0.9984131
+      }
+    },
+    {
+      "id": "class_back",
+      "label": "Class back frame",
+      "source": "../../Gamefiles/testPassiveOrigSVG/2844(blackpartframe)/shapes/2844.svg",
+      "x": 19.25,
+      "y": 8.5,
+      "scaleX": 1,
+      "scaleY": 1,
+      "rotation": 0,
+      "visible": true,
+      "recolor": {
+        "#111111": "$classColor"
+      }
+    },
+    {
+      "id": "side_frame",
+      "label": "Class side frame",
+      "source": "../../Gamefiles/testPassiveOrigSVG/2845(blacksideframe)/shapes/2845.svg",
+      "x": 17.5,
+      "y": 16.75,
+      "scaleX": 1.006,
+      "scaleY": 1,
+      "rotation": 0,
+      "visible": true,
+      "recolor": {
+        "#111111": "$classColor"
+      }
+    }
+  ]
+}

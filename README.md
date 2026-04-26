@@ -62,6 +62,7 @@ Generate the passive manifest and all regular class passives from the command li
 ```powershell
 python scripts\extract_passive_manifest.py
 python scripts\generate_all_passives.py
+python scripts\generate_all_passives.py --rules rules\upgrade_manual.json --output-dir output\all_passives_upgraded
 python scripts\organize_passive_shape_svgs.py
 ```
 

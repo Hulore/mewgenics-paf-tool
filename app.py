@@ -142,7 +142,9 @@ class App(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.root_dir = project_root()
-        self.rules_path = self.root_dir / "rules" / "butcher_manual.json"
+        self.normal_rules_path = self.root_dir / "rules" / "butcher_manual.json"
+        self.upgrade_rules_path = self.root_dir / "rules" / "upgrade_manual.json"
+        self.rules_path = self.normal_rules_path
         self.preview_path = self.root_dir / ".cache" / "adjust_preview.svg"
         self.rules = self.load_rules()
 
@@ -152,6 +154,12 @@ class App(QWidget):
 
         self.class_combo = QComboBox()
         self.adjust_class_combo = QComboBox()
+        self.rule_combo = QComboBox()
+        self.all_rule_combo = QComboBox()
+        self.adjust_rule_combo = QComboBox()
+        self.populate_rule_combo(self.rule_combo)
+        self.populate_rule_combo(self.all_rule_combo)
+        self.populate_rule_combo(self.adjust_rule_combo)
         self.populate_class_combo(self.class_combo)
         self.populate_class_combo(self.adjust_class_combo)
 
@@ -192,6 +200,18 @@ class App(QWidget):
             return json.loads(self.rules_path.read_text(encoding="utf-8"))
         except Exception:
             return {"classes": {"butcher": {"color": "#ac4457"}}, "layers": []}
+
+    def populate_rule_combo(self, combo: QComboBox) -> None:
+        combo.clear()
+        combo.addItem("Normal", str(self.normal_rules_path))
+        combo.addItem("Upgraded", str(self.upgrade_rules_path))
+
+    def selected_rules_path(self, combo: QComboBox) -> Path:
+        data = combo.currentData()
+        return Path(data) if data else self.normal_rules_path
+
+    def selected_rule_suffix(self, combo: QComboBox) -> str:
+        return "upgraded_paf" if self.selected_rules_path(combo) == self.upgrade_rules_path else "paf"
 
     def populate_class_combo(self, combo: QComboBox) -> None:
         combo.clear()
@@ -250,19 +270,22 @@ class App(QWidget):
         grid.addWidget(QLabel("Class"), 0, 0)
         grid.addWidget(self.class_combo, 0, 1)
 
-        grid.addWidget(QLabel("Main pictures"), 1, 0)
+        grid.addWidget(QLabel("Icon type"), 1, 0)
+        grid.addWidget(self.rule_combo, 1, 1)
+
+        grid.addWidget(QLabel("Main pictures"), 2, 0)
         main_button = QPushButton("Browse")
         main_button.clicked.connect(self.pick_main_svgs)
-        grid.addWidget(main_button, 1, 1)
+        grid.addWidget(main_button, 2, 1)
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self.file_list.clear)
-        grid.addWidget(clear_button, 1, 2)
+        grid.addWidget(clear_button, 2, 2)
 
-        grid.addWidget(QLabel("Output folder"), 2, 0)
-        grid.addWidget(self.output_dir_input, 2, 1)
+        grid.addWidget(QLabel("Output folder"), 3, 0)
+        grid.addWidget(self.output_dir_input, 3, 1)
         output_button = QPushButton("Browse")
         output_button.clicked.connect(self.pick_output_dir)
-        grid.addWidget(output_button, 2, 2)
+        grid.addWidget(output_button, 3, 2)
         root.addLayout(grid)
 
         actions = QHBoxLayout()
@@ -296,17 +319,20 @@ class App(QWidget):
         manifest_button.clicked.connect(self.pick_manifest)
         grid.addWidget(manifest_button, 0, 2)
 
-        grid.addWidget(QLabel("Shape SVG folder"), 1, 0)
-        grid.addWidget(self.shapes_dir_input, 1, 1)
+        grid.addWidget(QLabel("Icon type"), 1, 0)
+        grid.addWidget(self.all_rule_combo, 1, 1)
+
+        grid.addWidget(QLabel("Shape SVG folder"), 2, 0)
+        grid.addWidget(self.shapes_dir_input, 2, 1)
         shapes_button = QPushButton("Browse")
         shapes_button.clicked.connect(self.pick_shapes_dir)
-        grid.addWidget(shapes_button, 1, 2)
+        grid.addWidget(shapes_button, 2, 2)
 
-        grid.addWidget(QLabel("Output folder"), 2, 0)
-        grid.addWidget(self.all_output_dir_input, 2, 1)
+        grid.addWidget(QLabel("Output folder"), 3, 0)
+        grid.addWidget(self.all_output_dir_input, 3, 1)
         output_button = QPushButton("Browse")
         output_button.clicked.connect(self.pick_all_output_dir)
-        grid.addWidget(output_button, 2, 2)
+        grid.addWidget(output_button, 3, 2)
 
         root.addLayout(grid)
 
@@ -340,17 +366,21 @@ class App(QWidget):
         grid.addWidget(self.adjust_class_combo, 0, 1)
         self.adjust_class_combo.currentIndexChanged.connect(self.update_adjust_preview)
 
-        grid.addWidget(QLabel("Main picture"), 1, 0)
-        grid.addWidget(self.adjust_main_input, 1, 1)
+        grid.addWidget(QLabel("Icon type"), 1, 0)
+        grid.addWidget(self.adjust_rule_combo, 1, 1)
+        self.adjust_rule_combo.currentIndexChanged.connect(self.update_adjust_preview)
+
+        grid.addWidget(QLabel("Main picture"), 2, 0)
+        grid.addWidget(self.adjust_main_input, 2, 1)
         main_button = QPushButton("Browse")
         main_button.clicked.connect(self.pick_adjust_svg)
-        grid.addWidget(main_button, 1, 2)
+        grid.addWidget(main_button, 2, 2)
 
-        grid.addWidget(QLabel("Output SVG"), 2, 0)
-        grid.addWidget(self.adjust_output_input, 2, 1)
+        grid.addWidget(QLabel("Output SVG"), 3, 0)
+        grid.addWidget(self.adjust_output_input, 3, 1)
         save_button = QPushButton("Save as")
         save_button.clicked.connect(self.pick_adjust_output)
-        grid.addWidget(save_button, 2, 2)
+        grid.addWidget(save_button, 3, 2)
         root.addLayout(grid)
 
         editor = QHBoxLayout()
@@ -515,14 +545,16 @@ class App(QWidget):
             self.output_dir_input.setText(path)
 
     def generate(self) -> None:
-        if not self.rules_path.exists():
-            QMessageBox.critical(self, APP_TITLE, f"Rules file not found:\n{self.rules_path}")
+        rules_path = self.selected_rules_path(self.rule_combo)
+        if not rules_path.exists():
+            QMessageBox.critical(self, APP_TITLE, f"Rules file not found:\n{rules_path}")
             return
         if self.file_list.count() == 0:
             QMessageBox.critical(self, APP_TITLE, "Add at least one main picture SVG.")
             return
 
         class_name = self.class_combo.currentData() or self.class_combo.currentText().lower()
+        suffix = self.selected_rule_suffix(self.rule_combo)
         output_dir_text = self.output_dir_input.text().strip()
         output_dir = Path(output_dir_text) if output_dir_text else None
         generated = []
@@ -535,9 +567,9 @@ class App(QWidget):
                 continue
 
             target_dir = output_dir if output_dir is not None else main_svg.parent
-            output = target_dir / f"{main_svg.stem}_{class_name}_paf.svg"
+            output = target_dir / f"{main_svg.stem}_{class_name}_{suffix}.svg"
             try:
-                build(self.rules_path, main_svg, class_name, output)
+                build(rules_path, main_svg, class_name, output)
             except Exception as exc:
                 errors.append(f"{main_svg.name}: {exc}")
                 continue
@@ -586,6 +618,9 @@ class App(QWidget):
         manifest = Path(self.manifest_input.text().strip())
         shapes_dir = Path(self.shapes_dir_input.text().strip())
         output_dir = Path(self.all_output_dir_input.text().strip())
+        rules_path = self.selected_rules_path(self.all_rule_combo)
+        if rules_path == self.upgrade_rules_path and output_dir.name == "all_passives":
+            output_dir = output_dir.with_name("all_passives_upgraded")
 
         if not manifest.exists():
             QMessageBox.critical(self, APP_TITLE, f"Manifest CSV not found:\n{manifest}")
@@ -593,8 +628,11 @@ class App(QWidget):
         if not shapes_dir.exists():
             QMessageBox.critical(self, APP_TITLE, f"Shape SVG folder not found:\n{shapes_dir}")
             return
+        if not rules_path.exists():
+            QMessageBox.critical(self, APP_TITLE, f"Rules file not found:\n{rules_path}")
+            return
 
-        generated, errors = generate_all(manifest, shapes_dir, self.rules_path, output_dir)
+        generated, errors = generate_all(manifest, shapes_dir, rules_path, output_dir)
         if errors:
             QMessageBox.warning(
                 self,
@@ -615,7 +653,8 @@ class App(QWidget):
         self.adjust_main_input.setText(str(source))
         if not self.adjust_output_input.text().strip():
             class_name = self.adjust_class_combo.currentData() or self.adjust_class_combo.currentText().lower()
-            self.adjust_output_input.setText(str(source.with_name(f"{source.stem}_{class_name}_adjusted_paf.svg")))
+            suffix = self.selected_rule_suffix(self.adjust_rule_combo)
+            self.adjust_output_input.setText(str(source.with_name(f"{source.stem}_{class_name}_adjusted_{suffix}.svg")))
         self.update_adjust_preview()
 
     def pick_adjust_svg(self) -> None:
@@ -663,8 +702,9 @@ class App(QWidget):
             return
 
         class_name = self.adjust_class_combo.currentData() or self.adjust_class_combo.currentText().lower()
+        rules_path = self.selected_rules_path(self.adjust_rule_combo)
         try:
-            build(self.rules_path, main_svg, class_name, self.preview_path, self.main_picture_overrides())
+            build(rules_path, main_svg, class_name, self.preview_path, self.main_picture_overrides())
         except Exception as exc:
             self.status.setText(f"Preview failed: {exc}")
             return
@@ -690,9 +730,10 @@ class App(QWidget):
             return
 
         class_name = self.adjust_class_combo.currentData() or self.adjust_class_combo.currentText().lower()
+        rules_path = self.selected_rules_path(self.adjust_rule_combo)
         output = Path(output_text)
         try:
-            build(self.rules_path, main_svg, class_name, output, self.main_picture_overrides())
+            build(rules_path, main_svg, class_name, output, self.main_picture_overrides())
         except Exception as exc:
             QMessageBox.critical(self, APP_TITLE, str(exc))
             return
