@@ -148,9 +148,15 @@ def main() -> None:
     parser.add_argument("--main-svg", type=Path, required=True)
     parser.add_argument("--class-name", default="butcher")
     parser.add_argument("--output", type=Path, default=Path("output") / "manual_butcher.svg")
+    parser.add_argument("--layer-overrides-json", default="")
+    parser.add_argument("--layer-overrides-file", type=Path)
     args = parser.parse_args()
 
-    build(args.rules.resolve(), args.main_svg.resolve(), args.class_name, args.output.resolve())
+    if args.layer_overrides_file:
+        layer_overrides = json.loads(args.layer_overrides_file.read_text(encoding="utf-8"))
+    else:
+        layer_overrides = json.loads(args.layer_overrides_json) if args.layer_overrides_json else None
+    build(args.rules.resolve(), args.main_svg.resolve(), args.class_name, args.output.resolve(), layer_overrides)
     print(args.output.resolve())
 
 

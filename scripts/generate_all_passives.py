@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 import sys
 from pathlib import Path
@@ -17,14 +18,22 @@ def safe_name(value: str) -> str:
     return value or "passive"
 
 
+def normalize_key(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]", "", value).lower()
+
+
 def generate_all(
     manifest_path: Path,
     shapes_dir: Path,
     rules_path: Path,
     output_dir: Path,
+    icon_overrides_path: Path | None = None,
 ) -> tuple[list[Path], list[str]]:
     generated: list[Path] = []
     errors: list[str] = []
+    icon_overrides = {}
+    if icon_overrides_path and icon_overrides_path.exists():
+        icon_overrides = json.loads(icon_overrides_path.read_text(encoding="utf-8"))
 
     with manifest_path.open(encoding="utf-8-sig", newline="") as file:
         for row in csv.DictReader(file):
@@ -37,9 +46,12 @@ def generate_all(
             class_name = row["tool_class"]
             display_name = safe_name(row["display_name"] or row["passive_id"])
             output = output_dir / class_name / f"{display_name}_{row['passive_id']}.svg"
+            passive_key = f"{class_name}-{normalize_key(display_name + row['passive_id'])}"
+            main_picture = icon_overrides.get(passive_key, {}).get("mainPicture")
+            layer_overrides = {"main_picture": main_picture} if main_picture else None
 
             try:
-                build(rules_path, main_svg, class_name, output)
+                build(rules_path, main_svg, class_name, output, layer_overrides)
             except Exception as exc:
                 errors.append(f"{row['passive_id']}: {exc}")
                 continue
@@ -55,6 +67,7 @@ def main() -> None:
     parser.add_argument("--shapes-dir", type=Path, default=Path("Ability Passive Svg") / "shapes")
     parser.add_argument("--rules", type=Path, default=Path("rules") / "butcher_manual.json")
     parser.add_argument("--output-dir", type=Path, default=Path("output") / "all_passives")
+    parser.add_argument("--icon-overrides", type=Path)
     args = parser.parse_args()
 
     generated, errors = generate_all(
@@ -62,6 +75,7 @@ def main() -> None:
         args.shapes_dir.resolve(),
         args.rules.resolve(),
         args.output_dir.resolve(),
+        args.icon_overrides.resolve() if args.icon_overrides else None,
     )
 
     print(f"generated={len(generated)} errors={len(errors)}")
