@@ -23,6 +23,7 @@ H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\dist\Mewgenics 
 The app lets you select main picture SVG files, choose a class, and generate SVG outputs.
 You can also drag and drop one or many main picture SVG files into the app window.
 Use the `Adjust main picture` tab to fine-tune a single problem SVG before saving it. The main picture can be dragged in the preview or adjusted with numeric fields.
+Use the `Generate all` tab with `output\passive_manifest.csv` and `Ability Passive Svg\shapes` to generate every regular class passive.
 
 1. Open the visual editor:
 
@@ -48,6 +49,13 @@ Build the desktop app:
 ```powershell
 python -m pip install -r requirements.txt
 python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Mewgenics PAF Tool" app.py
+```
+
+Generate the passive manifest and all regular class passives from the command line:
+
+```powershell
+python scripts\extract_passive_manifest.py
+python scripts\generate_all_passives.py
 ```
 
 Older FFDec timeline prototype:

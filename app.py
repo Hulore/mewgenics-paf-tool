@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from scripts.generate_all_passives import generate_all
 from scripts.generate_from_rules import build
 
 
@@ -161,6 +162,10 @@ class App(QWidget):
         self.output_dir_input = QLineEdit()
         self.output_dir_input.setPlaceholderText("Optional. Empty means save next to each source file.")
 
+        self.manifest_input = QLineEdit(str(self.root_dir / "output" / "passive_manifest.csv"))
+        self.shapes_dir_input = QLineEdit(str(self.root_dir / "Ability Passive Svg" / "shapes"))
+        self.all_output_dir_input = QLineEdit(str(self.root_dir / "output" / "all_passives"))
+
         self.adjust_main_input = QLineEdit()
         self.adjust_main_input.setPlaceholderText("Select or drop one main picture SVG")
         self.adjust_output_input = QLineEdit()
@@ -219,6 +224,7 @@ class App(QWidget):
 
         tabs = QTabWidget()
         tabs.addTab(self.build_batch_tab(), "Batch generate")
+        tabs.addTab(self.build_all_tab(), "Generate all")
         tabs.addTab(self.build_adjust_tab(), "Adjust main picture")
         root.addWidget(tabs)
 
@@ -266,6 +272,52 @@ class App(QWidget):
         generate_button.clicked.connect(self.generate)
         actions.addWidget(generate_button)
         root.addLayout(actions)
+
+        return tab
+
+    def build_all_tab(self) -> QWidget:
+        tab = QWidget()
+        root = QVBoxLayout(tab)
+        root.setContentsMargins(0, 14, 0, 0)
+        root.setSpacing(14)
+
+        header = QLabel("Generate every passive from passive_manifest.csv")
+        header.setObjectName("dropTitle")
+        root.addWidget(header)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(10)
+        grid.setColumnStretch(1, 1)
+
+        grid.addWidget(QLabel("Manifest CSV"), 0, 0)
+        grid.addWidget(self.manifest_input, 0, 1)
+        manifest_button = QPushButton("Browse")
+        manifest_button.clicked.connect(self.pick_manifest)
+        grid.addWidget(manifest_button, 0, 2)
+
+        grid.addWidget(QLabel("Shape SVG folder"), 1, 0)
+        grid.addWidget(self.shapes_dir_input, 1, 1)
+        shapes_button = QPushButton("Browse")
+        shapes_button.clicked.connect(self.pick_shapes_dir)
+        grid.addWidget(shapes_button, 1, 2)
+
+        grid.addWidget(QLabel("Output folder"), 2, 0)
+        grid.addWidget(self.all_output_dir_input, 2, 1)
+        output_button = QPushButton("Browse")
+        output_button.clicked.connect(self.pick_all_output_dir)
+        grid.addWidget(output_button, 2, 2)
+
+        root.addLayout(grid)
+
+        actions = QHBoxLayout()
+        actions.addStretch(1)
+        generate_button = QPushButton("Generate all passives")
+        generate_button.setObjectName("generateButton")
+        generate_button.clicked.connect(self.generate_all_passives)
+        actions.addWidget(generate_button)
+        root.addLayout(actions)
+        root.addStretch(1)
 
         return tab
 
@@ -501,6 +553,58 @@ class App(QWidget):
         self.status.setText(f"Generated {len(generated)} file(s).")
         if generated:
             QMessageBox.information(self, APP_TITLE, f"Generated {len(generated)} file(s).")
+
+    def pick_manifest(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select passive manifest CSV",
+            self.manifest_input.text().strip() or str(self.root_dir / "output"),
+            "CSV files (*.csv);;All files (*.*)",
+        )
+        if path:
+            self.manifest_input.setText(path)
+
+    def pick_shapes_dir(self) -> None:
+        path = QFileDialog.getExistingDirectory(
+            self,
+            "Select exported passive shape SVG folder",
+            self.shapes_dir_input.text().strip() or str(self.root_dir),
+        )
+        if path:
+            self.shapes_dir_input.setText(path)
+
+    def pick_all_output_dir(self) -> None:
+        path = QFileDialog.getExistingDirectory(
+            self,
+            "Select output folder",
+            self.all_output_dir_input.text().strip() or str(self.root_dir / "output"),
+        )
+        if path:
+            self.all_output_dir_input.setText(path)
+
+    def generate_all_passives(self) -> None:
+        manifest = Path(self.manifest_input.text().strip())
+        shapes_dir = Path(self.shapes_dir_input.text().strip())
+        output_dir = Path(self.all_output_dir_input.text().strip())
+
+        if not manifest.exists():
+            QMessageBox.critical(self, APP_TITLE, f"Manifest CSV not found:\n{manifest}")
+            return
+        if not shapes_dir.exists():
+            QMessageBox.critical(self, APP_TITLE, f"Shape SVG folder not found:\n{shapes_dir}")
+            return
+
+        generated, errors = generate_all(manifest, shapes_dir, self.rules_path, output_dir)
+        if errors:
+            QMessageBox.warning(
+                self,
+                APP_TITLE,
+                "Some passives were not generated:\n\n" + "\n".join(errors[:12]),
+            )
+
+        self.status.setText(f"Generated {len(generated)} passive icon(s).")
+        if generated:
+            QMessageBox.information(self, APP_TITLE, f"Generated {len(generated)} passive icon(s).")
 
     def set_adjust_svg_from_drop(self, paths: list[str]) -> None:
         if paths:

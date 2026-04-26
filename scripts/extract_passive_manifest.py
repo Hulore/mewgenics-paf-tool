@@ -71,8 +71,9 @@ def extract_passive_icon_map(ability_icons_swf: Path, sprite_id: int = 515) -> d
     frame_main_shape: dict[int, int | None] = {}
 
     def current_main_shape() -> int | None:
-        # Passive main art is placed in this range; different frames use different depths.
-        for depth in (8, 7, 6, 5, 4, 3):
+        # Passive main art is usually depth 4. A few frames use nearby depths;
+        # higher depths can be extra sprite decorations, not standalone shapes.
+        for depth in (4, 5, 6, 7, 8, 3):
             if depth in display:
                 return display[depth]
         return None
