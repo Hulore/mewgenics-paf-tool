@@ -32,19 +32,18 @@ def add_jester_gradient(root: ET.Element, canvas: dict) -> None:
             "id": JESTER_GRADIENT_ID,
             "gradientUnits": "userSpaceOnUse",
             "x1": "0",
-            "y1": str(canvas["height"]),
+            "y1": "0",
             "x2": str(canvas["width"]),
-            "y2": "0",
+            "y2": str(canvas["height"]),
         },
     )
     for offset, color in (
-        ("0%", "#f8aeae"),
-        ("17%", "#f8d3ae"),
-        ("34%", "#e8f8ae"),
-        ("51%", "#aef8ca"),
-        ("68%", "#aee8f8"),
-        ("84%", "#c4aef8"),
-        ("100%", "#f8aee5"),
+        ("0%", "#c9b8ff"),
+        ("18%", "#f0a8e6"),
+        ("38%", "#ffbfd0"),
+        ("58%", "#ffd4b0"),
+        ("78%", "#f6eaa0"),
+        ("100%", "#dcefa3"),
     ):
         ET.SubElement(gradient, f"{{{SVG_NS}}}stop", {"offset": offset, "stop-color": color})
 
