@@ -56,6 +56,7 @@ Generate the passive manifest and all regular class passives from the command li
 ```powershell
 python scripts\extract_passive_manifest.py
 python scripts\generate_all_passives.py
+python scripts\organize_passive_shape_svgs.py
 ```
 
 Older FFDec timeline prototype:
