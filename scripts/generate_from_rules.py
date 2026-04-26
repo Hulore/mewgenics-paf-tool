@@ -10,6 +10,8 @@ from xml.etree import ElementTree as ET
 SVG_NS = "http://www.w3.org/2000/svg"
 ET.register_namespace("", SVG_NS)
 
+JESTER_GRADIENT_ID = "jester_ui_rainbow"
+
 
 def read_svg_children(path: Path, recolor: dict[str, str]) -> list[ET.Element]:
     root = ET.parse(path).getroot()
@@ -19,6 +21,32 @@ def read_svg_children(path: Path, recolor: dict[str, str]) -> list[ET.Element]:
             if value in recolor:
                 node.set(attr, recolor[value])
     return [deepcopy(child) for child in list(root)]
+
+
+def add_jester_gradient(root: ET.Element, canvas: dict) -> None:
+    defs = ET.SubElement(root, f"{{{SVG_NS}}}defs")
+    gradient = ET.SubElement(
+        defs,
+        f"{{{SVG_NS}}}linearGradient",
+        {
+            "id": JESTER_GRADIENT_ID,
+            "gradientUnits": "userSpaceOnUse",
+            "x1": "0",
+            "y1": str(canvas["height"]),
+            "x2": str(canvas["width"]),
+            "y2": "0",
+        },
+    )
+    for offset, color in (
+        ("0%", "#f8aeae"),
+        ("17%", "#f8d3ae"),
+        ("34%", "#e8f8ae"),
+        ("51%", "#aef8ca"),
+        ("68%", "#aee8f8"),
+        ("84%", "#c4aef8"),
+        ("100%", "#f8aee5"),
+    ):
+        ET.SubElement(gradient, f"{{{SVG_NS}}}stop", {"offset": offset, "stop-color": color})
 
 
 def resolve_source(source: str, rules_dir: Path, main_svg: Path) -> Path:
@@ -65,9 +93,14 @@ def build_from_rules(
             "version": "1.1",
         },
     )
+    class_shader = class_data.get("shader")
+    if class_shader == "jester_rainbow":
+        add_jester_gradient(root, canvas)
 
     for layer in rules["layers"]:
         if not layer.get("visible", True):
+            continue
+        if layer["id"] in class_data.get("hide_layers", []):
             continue
         layer = deepcopy(layer)
         if layer_overrides and layer["id"] in layer_overrides:
@@ -79,7 +112,15 @@ def build_from_rules(
 
         recolor = {}
         for source_color, target_color in layer.get("recolor", {}).items():
-            recolor[source_color] = class_color if target_color == "$classColor" else target_color
+            if target_color == "$classColor":
+                if class_shader == "jester_rainbow":
+                    recolor[source_color] = f"url(#{JESTER_GRADIENT_ID})"
+                else:
+                    recolor[source_color] = class_color
+            elif target_color == "$classShader" and class_shader == "jester_rainbow":
+                recolor[source_color] = f"url(#{JESTER_GRADIENT_ID})"
+            else:
+                recolor[source_color] = target_color
 
         transform = (
             f"translate({layer.get('x', 0)} {layer.get('y', 0)}) "

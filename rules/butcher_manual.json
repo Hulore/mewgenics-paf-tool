@@ -11,6 +11,12 @@
     "cleric": {
       "color": "#fdfdfd"
     },
+    "coraless": {
+      "color": "#817b77",
+      "hide_layers": [
+        "side_frame"
+      ]
+    },
     "druid": {
       "color": "#5b4237"
     },
@@ -19,6 +25,10 @@
     },
     "hunter": {
       "color": "#425d3d"
+    },
+    "jester": {
+      "color": "#817b77",
+      "shader": "jester_rainbow"
     },
     "mage": {
       "color": "#787899"

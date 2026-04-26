@@ -10,8 +10,6 @@ from pathlib import Path
 
 
 SKIP_PASSIVE_FILES = {
-    "colorless_passives.gon",
-    "jester_passives.gon",
     "disorders.gon",
     "util_passives.gon",
 }
@@ -61,9 +59,44 @@ def extract_sprite_payload(swf_data: bytes, sprite_id: int) -> bytes:
     raise KeyError(f"DefineSprite {sprite_id} was not found.")
 
 
+def extract_sprite_main_children(swf_data: bytes) -> dict[int, int]:
+    sprite_children: dict[int, int] = {}
+    tags_offset = 8 + swf_rect_length(swf_data, 8) + 4
+
+    for tag_code, payload in swf_tags(swf_data, tags_offset):
+        if tag_code != 39 or len(payload) < 4:
+            continue
+
+        sprite_id = struct.unpack_from("<H", payload, 0)[0]
+        display: dict[int, int] = {}
+
+        for child_tag_code, child_payload in swf_tags(payload[4:], 0, len(payload) - 4):
+            if child_tag_code == 28 and len(child_payload) >= 2:  # RemoveObject2
+                display.pop(struct.unpack_from("<H", child_payload, 0)[0], None)
+            elif child_tag_code == 5 and len(child_payload) >= 4:  # RemoveObject
+                display.pop(struct.unpack_from("<H", child_payload, 2)[0], None)
+            elif child_tag_code in (26, 70):  # PlaceObject2 / PlaceObject3
+                flags = child_payload[0]
+                offset = 1 if child_tag_code == 26 else 2
+                if len(child_payload) < offset + 2:
+                    continue
+                depth = struct.unpack_from("<H", child_payload, offset)[0]
+                offset += 2
+                if flags & 0x02 and offset + 2 <= len(child_payload):
+                    display[depth] = struct.unpack_from("<H", child_payload, offset)[0]
+
+        for depth in (4, 5, 6, 7, 8, 3, 2, 1):
+            if depth in display:
+                sprite_children[sprite_id] = display[depth]
+                break
+
+    return sprite_children
+
+
 def extract_passive_icon_map(ability_icons_swf: Path, sprite_id: int = 515) -> dict[str, dict[str, int]]:
     swf_data = read_swf(ability_icons_swf)
     sprite_payload = extract_sprite_payload(swf_data, sprite_id)
+    sprite_children = extract_sprite_main_children(swf_data)
 
     frame = 1
     labels: dict[int, str] = {}
@@ -75,7 +108,8 @@ def extract_passive_icon_map(ability_icons_swf: Path, sprite_id: int = 515) -> d
         # higher depths can be extra sprite decorations, not standalone shapes.
         for depth in (4, 5, 6, 7, 8, 3):
             if depth in display:
-                return display[depth]
+                character_id = display[depth]
+                return sprite_children.get(character_id, character_id)
         return None
 
     for tag_code, payload in swf_tags(sprite_payload, 0, len(sprite_payload)):
@@ -163,7 +197,13 @@ def build_manifest(project_root: Path, output: Path) -> tuple[int, int, int, Cou
             missing += 1
 
         source_class = passive["source_class"]
-        tool_class = "cleric" if source_class.lower() == "medic" else source_class.lower()
+        source_class_key = source_class.lower()
+        if source_class_key == "medic":
+            tool_class = "cleric"
+        elif source_class_key == "colorless":
+            tool_class = "coraless"
+        else:
+            tool_class = source_class_key
         rows.append(
             {
                 "passive_id": passive["passive_id"],

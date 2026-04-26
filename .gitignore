@@ -26,6 +26,7 @@ venv/
 # Local game assets / exports
 Gamefiles/
 Ability Passive Svg/
+Jester shader/
 reference/
 exports/
 output/
