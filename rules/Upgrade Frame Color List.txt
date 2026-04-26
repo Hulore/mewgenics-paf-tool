@@ -1,0 +1,13 @@
+Butcher: 7c2f3c
+Cleric: f2efef
+Coraless: cbc9c7
+Druid: 3a2922
+Fighter: 8d5959
+Hunter: 2f432b
+Mage: cac8da
+Monk: a2a2a2
+Necromancer: 8d5959
+Psychic: 40354e
+Tank: 53472b
+Thief: cbc9c7
+Tinkerer: 79ceb7

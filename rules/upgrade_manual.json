@@ -6,43 +6,55 @@
   },
   "classes": {
     "butcher": {
-      "color": "#ac4457"
+      "color": "#ac4457",
+      "upgradeColor": "#7c2f3c"
     },
     "cleric": {
-      "color": "#fdfdfd"
+      "color": "#fdfdfd",
+      "upgradeColor": "#f2efef"
     },
     "druid": {
-      "color": "#5b4237"
+      "color": "#5b4237",
+      "upgradeColor": "#3a2922"
     },
     "fighter": {
-      "color": "#b17373"
+      "color": "#b17373",
+      "upgradeColor": "#8d5959"
     },
     "hunter": {
-      "color": "#425d3d"
+      "color": "#425d3d",
+      "upgradeColor": "#2f432b"
     },
     "mage": {
-      "color": "#787899"
+      "color": "#787899",
+      "upgradeColor": "#cac8da"
     },
     "monk": {
-      "color": "#787878"
+      "color": "#787878",
+      "upgradeColor": "#a2a2a2"
     },
     "necromancer": {
-      "color": "#232425"
+      "color": "#232425",
+      "upgradeColor": "#8d5959"
     },
     "psychic": {
-      "color": "#645379"
+      "color": "#645379",
+      "upgradeColor": "#40354e"
     },
     "tank": {
-      "color": "#645379"
+      "color": "#645379",
+      "upgradeColor": "#53472b"
     },
     "thief": {
-      "color": "#645379"
+      "color": "#645379",
+      "upgradeColor": "#cbc9c7"
     },
     "tinkerer": {
       "color": "#b5eadc"
     },
     "coraless": {
       "color": "#817b77",
+      "upgradeColor": "#cbc9c7",
       "hide_layers": [
         "side_frame"
       ]
@@ -68,6 +80,9 @@
         "b": -0.056030273,
         "c": 0.036346436,
         "d": 0.9984131
+      },
+      "recolor": {
+        "#666666": "$upgradeColor"
       }
     },
     {

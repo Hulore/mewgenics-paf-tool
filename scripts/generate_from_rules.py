@@ -83,6 +83,7 @@ def build_from_rules(
         raise KeyError(f"Unknown class '{class_name}'. Known classes: {known}")
 
     class_color = class_data["color"]
+    upgrade_color = class_data.get("upgradeColor", class_color)
     canvas = rules["canvas"]
     root = ET.Element(
         f"{{{SVG_NS}}}svg",
@@ -117,6 +118,11 @@ def build_from_rules(
                     recolor[source_color] = f"url(#{JESTER_GRADIENT_ID})"
                 else:
                     recolor[source_color] = class_color
+            elif target_color == "$upgradeColor":
+                if class_shader == "jester_rainbow":
+                    recolor[source_color] = f"url(#{JESTER_GRADIENT_ID})"
+                else:
+                    recolor[source_color] = upgrade_color
             elif target_color == "$classShader" and class_shader == "jester_rainbow":
                 recolor[source_color] = f"url(#{JESTER_GRADIENT_ID})"
             else:
