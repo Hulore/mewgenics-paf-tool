@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mewgenics PAF Upgrade Layout Editor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      background: #1f2023;
+      color: #eeeeee;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(520px, 1fr) 360px;
+    }
+
+    main {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    aside {
+      border-left: 1px solid #3d3f45;
+      padding: 16px;
+      background: #27292f;
+      overflow: auto;
+      max-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .stage-row {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .stage-shell {
+      display: grid;
+      gap: 8px;
+    }
+
+    .stage-label {
+      color: #c8cad0;
+      font-size: 13px;
+    }
+
+    #stage,
+    .reference {
+      position: relative;
+      width: 441px;
+      height: 276px;
+      background:
+        linear-gradient(45deg, #303238 25%, transparent 25%),
+        linear-gradient(-45deg, #303238 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #303238 75%),
+        linear-gradient(-45deg, transparent 75%, #303238 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      border: 1px solid #555861;
+      overflow: hidden;
+    }
+
+    .reference img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      cursor: move;
+      user-select: none;
+    }
+
+    .layer img {
+      display: block;
+      pointer-events: none;
+    }
+
+    .layer.selected {
+      outline: 1px dashed #65d6ff;
+      outline-offset: 2px;
+    }
+
+    .toolbar,
+    .panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .layer-list {
+      display: grid;
+      gap: 6px;
+      padding: 8px;
+      border: 1px solid #444850;
+      background: #202228;
+    }
+
+    .layer-toggle {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) 26px 26px;
+      gap: 8px;
+      align-items: center;
+      padding: 4px;
+      border-radius: 4px;
+      color: #d6d7dc;
+      cursor: pointer;
+    }
+
+    .layer-toggle:hover,
+    .layer-toggle.active {
+      background: #343842;
+    }
+
+    .layer-toggle input {
+      width: 16px;
+      height: 16px;
+      padding: 0;
+    }
+
+    .mini-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      line-height: 1;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    button,
+    select,
+    input,
+    textarea {
+      box-sizing: border-box;
+      border: 1px solid #555861;
+      background: #1d1f24;
+      color: #f2f2f2;
+      border-radius: 4px;
+      padding: 8px;
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      background: #343842;
+    }
+
+    button:hover {
+      background: #414754;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: #d6d7dc;
+      font-size: 13px;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 190px;
+      resize: vertical;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .hint {
+      color: #aeb2bd;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="stage-row">
+      <div class="stage-shell">
+        <div class="stage-label">Generated upgrade layout</div>
+        <div id="stage"></div>
+      </div>
+      <div class="stage-shell">
+        <div class="stage-label">Reference</div>
+        <div class="reference">
+          <img src="../../reference/Butcher%20Passive%20gameframe-Photoroom.png" alt="">
+        </div>
+      </div>
+    </div>
+    <div class="hint">
+      Drag layers on the left. The upgrade frame already has the SWF skew/scale matrix; tune its X/Y position here.
+    </div>
+  </main>
+
+  <aside>
+    <div class="toolbar">
+      <label>
+        Layer
+        <select id="layerSelect"></select>
+      </label>
+      <div class="grid2">
+        <button id="moveForwardBtn" type="button">Move forward</button>
+        <button id="moveBackwardBtn" type="button">Move backward</button>
+      </div>
+      <div>
+        <div class="stage-label">Layer visibility</div>
+        <div id="layerList" class="layer-list"></div>
+      </div>
+      <label>
+        Main picture preview
+        <input id="mainFile" type="file" accept=".svg,image/svg+xml">
+      </label>
+      <div class="grid2">
+        <label>X <input id="x" type="number" step="0.25"></label>
+        <label>Y <input id="y" type="number" step="0.25"></label>
+        <label>Scale X <input id="scaleX" type="number" step="0.01"></label>
+        <label>Scale Y <input id="scaleY" type="number" step="0.01"></label>
+        <label>Rotate <input id="rotation" type="number" step="0.25"></label>
+        <label>Visible <input id="visible" type="checkbox"></label>
+      </div>
+      <button id="exportBtn">Export JSON</button>
+      <button id="importBtn">Import JSON</button>
+      <textarea id="jsonBox" spellcheck="false"></textarea>
+      <div class="hint">
+        This editor is for tuning the upgraded passive overlay. Export JSON when the upgrade frame placement is correct.
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const stage = document.querySelector("#stage");
+    const layerSelect = document.querySelector("#layerSelect");
+    const layerList = document.querySelector("#layerList");
+    const jsonBox = document.querySelector("#jsonBox");
+    const fields = {
+      x: document.querySelector("#x"),
+      y: document.querySelector("#y"),
+      scaleX: document.querySelector("#scaleX"),
+      scaleY: document.querySelector("#scaleY"),
+      rotation: document.querySelector("#rotation"),
+      visible: document.querySelector("#visible")
+    };
+    const moveForwardBtn = document.querySelector("#moveForwardBtn");
+    const moveBackwardBtn = document.querySelector("#moveBackwardBtn");
+
+    const stageScale = 3;
+    let selectedId = null;
+    let drag = null;
+    let mainPreviewUrl = null;
+
+    let rules = {
+      canvas: { width: 147, height: 92, viewBox: "0 0 147 92" },
+      classes: {
+        butcher: { color: "#ac4457" },
+        cleric: { color: "#fdfdfd" },
+        druid: { color: "#5b4237" },
+        fighter: { color: "#b17373" },
+        hunter: { color: "#425d3d" },
+        mage: { color: "#787899" },
+        monk: { color: "#787878" },
+        necromancer: { color: "#232425" },
+        psychic: { color: "#645379" },
+        tank: { color: "#645379" },
+        thief: { color: "#645379" },
+        tinkerer: { color: "#b5eadc" },
+        coraless: { color: "#817b77", hide_layers: ["side_frame"] },
+        jester: { color: "#817b77", shader: "jester_rainbow" }
+      },
+      layers: [
+        { id: "icon_background", label: "Icon background", source: "../../Gamefiles/testPassiveOrigSVG/1WhiteBackground.svg", x: 36.25, y: 22, scaleX: 1, scaleY: 1, rotation: 0, visible: true },
+        { id: "main_picture", label: "Main picture", source: "$main", x: 37, y: 26, scaleX: 1, scaleY: 1, rotation: 0, visible: true },
+        { id: "black_frame", label: "Black frame", source: "../../Gamefiles/testPassiveOrigSVG/3(BlackFrame).svg", x: 36.75, y: 23.5, scaleX: 0.98, scaleY: 0.96, rotation: 0, visible: true },
+        { id: "upgrade_frame", label: "Upgrade top frame", source: "../../OtherGameFiles/UnpackedImportant/2756/shapes/2756.svg", x: 17.25, y: -11.7, scaleX: 1, scaleY: 1, rotation: 0, visible: true, matrix: { a: 1.1071625, b: 0.056030273, c: -0.036346436, d: 0.9984131 } },
+        { id: "class_back", label: "Class back frame", source: "../../Gamefiles/testPassiveOrigSVG/2844(blackpartframe)/shapes/2844.svg", x: 19.25, y: 8.5, scaleX: 1, scaleY: 1, rotation: 0, visible: true, recolor: { "#111111": "$classColor" } },
+        { id: "side_frame", label: "Class side frame", source: "../../Gamefiles/testPassiveOrigSVG/2845(blacksideframe)/shapes/2845.svg", x: 17.5, y: 16.75, scaleX: 1.006, scaleY: 1, rotation: 0, visible: true, recolor: { "#111111": "$classColor" } }
+      ]
+    };
+
+    function editorSrc(source) {
+      if (source === "$main") {
+        return mainPreviewUrl || "../../Gamefiles/testPassiveOrigSVG/196(mainpicture).svg";
+      }
+      return source;
+    }
+
+    function layerById(id) {
+      return rules.layers.find(layer => layer.id === id);
+    }
+
+    function moveLayer(id, direction) {
+      const index = rules.layers.findIndex(layer => layer.id === id);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= rules.layers.length) return;
+      const [layer] = rules.layers.splice(index, 1);
+      rules.layers.splice(nextIndex, 0, layer);
+      selectedId = id;
+      render();
+    }
+
+    function render() {
+      stage.innerHTML = "";
+      layerSelect.innerHTML = "";
+      layerList.innerHTML = "";
+
+      rules.layers.forEach((layer, index) => {
+        const option = document.createElement("option");
+        option.value = layer.id;
+        option.textContent = layer.label || layer.id;
+        layerSelect.append(option);
+
+        const toggle = document.createElement("label");
+        toggle.className = "layer-toggle";
+        if (layer.id === selectedId) toggle.classList.add("active");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = layer.visible !== false;
+        checkbox.addEventListener("change", event => {
+          event.stopPropagation();
+          layer.visible = checkbox.checked;
+          selectedId = layer.id;
+          render();
+        });
+        const toggleText = document.createElement("span");
+        toggleText.textContent = layer.label || layer.id;
+        const upButton = document.createElement("button");
+        upButton.type = "button";
+        upButton.className = "mini-btn";
+        upButton.textContent = "↑";
+        upButton.title = "Move layer forward";
+        upButton.disabled = index === rules.layers.length - 1;
+        upButton.addEventListener("click", event => {
+          event.stopPropagation();
+          moveLayer(layer.id, 1);
+        });
+        const downButton = document.createElement("button");
+        downButton.type = "button";
+        downButton.className = "mini-btn";
+        downButton.textContent = "↓";
+        downButton.title = "Move layer backward";
+        downButton.disabled = index === 0;
+        downButton.addEventListener("click", event => {
+          event.stopPropagation();
+          moveLayer(layer.id, -1);
+        });
+        toggle.addEventListener("click", event => {
+          if (event.target !== checkbox && event.target !== upButton && event.target !== downButton) {
+            selectedId = layer.id;
+            render();
+          }
+        });
+        toggle.append(checkbox, toggleText, upButton, downButton);
+        layerList.append(toggle);
+
+        const el = document.createElement("div");
+        el.className = "layer";
+        el.dataset.id = layer.id;
+        el.style.zIndex = index + 1;
+        el.style.display = layer.visible === false ? "none" : "block";
+        const matrix = layer.matrix
+          ? ` matrix(${layer.matrix.a}, ${layer.matrix.b}, ${layer.matrix.c}, ${layer.matrix.d}, 0, 0)`
+          : "";
+        el.style.transform = `translate(${layer.x * stageScale}px, ${layer.y * stageScale}px)${matrix} rotate(${layer.rotation || 0}deg) scale(${layer.scaleX || 1}, ${layer.scaleY || 1})`;
+        if (layer.id === selectedId) el.classList.add("selected");
+
+        const img = document.createElement("img");
+        img.src = editorSrc(layer.source);
+        img.draggable = false;
+        img.style.width = "auto";
+        img.style.height = "auto";
+        img.style.transform = `scale(${stageScale})`;
+        img.style.transformOrigin = "0 0";
+        el.append(img);
+        stage.append(el);
+      });
+
+      if (!selectedId && rules.layers.length) selectedId = rules.layers[0].id;
+      layerSelect.value = selectedId;
+      syncControls();
+    }
+
+    function syncControls() {
+      const layer = layerById(selectedId);
+      if (!layer) return;
+      const index = rules.layers.findIndex(item => item.id === selectedId);
+      moveBackwardBtn.disabled = index <= 0;
+      moveForwardBtn.disabled = index >= rules.layers.length - 1;
+      fields.x.value = layer.x || 0;
+      fields.y.value = layer.y || 0;
+      fields.scaleX.value = layer.scaleX ?? 1;
+      fields.scaleY.value = layer.scaleY ?? 1;
+      fields.rotation.value = layer.rotation || 0;
+      fields.visible.checked = layer.visible !== false;
+    }
+
+    function updateSelected() {
+      const layer = layerById(selectedId);
+      if (!layer) return;
+      layer.x = Number(fields.x.value);
+      layer.y = Number(fields.y.value);
+      layer.scaleX = Number(fields.scaleX.value);
+      layer.scaleY = Number(fields.scaleY.value);
+      layer.rotation = Number(fields.rotation.value);
+      layer.visible = fields.visible.checked;
+      render();
+    }
+
+    layerSelect.addEventListener("change", () => {
+      selectedId = layerSelect.value;
+      render();
+    });
+
+    moveForwardBtn.addEventListener("click", () => moveLayer(selectedId, 1));
+    moveBackwardBtn.addEventListener("click", () => moveLayer(selectedId, -1));
+
+    Object.values(fields).forEach(input => input.addEventListener("input", updateSelected));
+
+    stage.addEventListener("pointerdown", event => {
+      const el = event.target.closest(".layer");
+      if (!el) return;
+      selectedId = el.dataset.id;
+      const layer = layerById(selectedId);
+      drag = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        layerX: layer.x || 0,
+        layerY: layer.y || 0
+      };
+      el.setPointerCapture(event.pointerId);
+      render();
+    });
+
+    stage.addEventListener("pointermove", event => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const layer = layerById(selectedId);
+      layer.x = Math.round((drag.layerX + (event.clientX - drag.startX) / stageScale) * 4) / 4;
+      layer.y = Math.round((drag.layerY + (event.clientY - drag.startY) / stageScale) * 4) / 4;
+      render();
+    });
+
+    stage.addEventListener("pointerup", () => {
+      drag = null;
+    });
+
+    document.querySelector("#exportBtn").addEventListener("click", () => {
+      jsonBox.value = JSON.stringify(rules, null, 2);
+      jsonBox.select();
+    });
+
+    document.querySelector("#importBtn").addEventListener("click", () => {
+      rules = JSON.parse(jsonBox.value);
+      selectedId = rules.layers[0]?.id || null;
+      render();
+    });
+
+    document.querySelector("#mainFile").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (mainPreviewUrl) URL.revokeObjectURL(mainPreviewUrl);
+      mainPreviewUrl = URL.createObjectURL(file);
+      render();
+    });
+
+    jsonBox.value = JSON.stringify(rules, null, 2);
+    selectedId = rules.layers[0].id;
+    render();
+  </script>
+</body>
+</html>

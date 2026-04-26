@@ -122,11 +122,26 @@ def build_from_rules(
             else:
                 recolor[source_color] = target_color
 
-        transform = (
-            f"translate({layer.get('x', 0)} {layer.get('y', 0)}) "
-            f"rotate({layer.get('rotation', 0)}) "
-            f"scale({layer.get('scaleX', 1)} {layer.get('scaleY', 1)})"
+        transform_parts = [f"translate({layer.get('x', 0)} {layer.get('y', 0)})"]
+        matrix = layer.get("matrix")
+        if matrix:
+            transform_parts.append(
+                "matrix("
+                f"{matrix.get('a', 1)} "
+                f"{matrix.get('b', 0)} "
+                f"{matrix.get('c', 0)} "
+                f"{matrix.get('d', 1)} "
+                f"{matrix.get('e', 0)} "
+                f"{matrix.get('f', 0)}"
+                ")"
+            )
+        transform_parts.extend(
+            [
+                f"rotate({layer.get('rotation', 0)})",
+                f"scale({layer.get('scaleX', 1)} {layer.get('scaleY', 1)})",
+            ]
         )
+        transform = " ".join(transform_parts)
         group = ET.SubElement(
             root,
             f"{{{SVG_NS}}}g",

@@ -31,6 +31,12 @@ Use the `Generate all` tab with `output\passive_manifest.csv` and `Ability Passi
 H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\tools\layout_editor.html
 ```
 
+Upgrade passive overlay editor:
+
+```text
+H:\Mewgenics Projects\Passive Abilities Frame\Mewgenics PAF tool\tools\upgrade_layout_editor.html
+```
+
 2. Move and scale layers until the generated layout matches the reference.
 3. Click `Export JSON`.
 4. Save the exported JSON into `rules/butcher_manual.json`.
