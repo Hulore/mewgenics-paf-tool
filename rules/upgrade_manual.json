@@ -50,7 +50,8 @@
       "upgradeColor": "#cbc9c7"
     },
     "tinkerer": {
-      "color": "#b5eadc"
+      "color": "#b5eadc",
+      "upgradeColor": "#79ceb7"
     },
     "coraless": {
       "color": "#817b77",
