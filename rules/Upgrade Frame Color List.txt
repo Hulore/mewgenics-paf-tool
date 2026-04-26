@@ -6,8 +6,8 @@ Fighter: 8d5959
 Hunter: 2f432b
 Mage: cac8da
 Monk: a2a2a2
-Necromancer: 8d5959
+Necromancer: 3f4045
 Psychic: 40354e
 Tank: 53472b
-Thief: cbc9c7
+Thief: d8d5a0
 Tinkerer: 79ceb7

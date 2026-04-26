@@ -7,6 +7,6 @@ Mage: 787899
 Monk: 787878
 Necromancer: 232425
 Psychic: 645379
-Tank: 645379
-Thief: 645379
+Tank: 857348
+Thief: fffbb5
 Tinkerer: b5eadc

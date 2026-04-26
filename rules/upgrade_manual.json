@@ -35,19 +35,19 @@
     },
     "necromancer": {
       "color": "#232425",
-      "upgradeColor": "#8d5959"
+      "upgradeColor": "#3f4045"
     },
     "psychic": {
       "color": "#645379",
       "upgradeColor": "#40354e"
     },
     "tank": {
-      "color": "#645379",
+      "color": "#857348",
       "upgradeColor": "#53472b"
     },
     "thief": {
-      "color": "#645379",
-      "upgradeColor": "#cbc9c7"
+      "color": "#fffbb5",
+      "upgradeColor": "#d8d5a0"
     },
     "tinkerer": {
       "color": "#b5eadc",
