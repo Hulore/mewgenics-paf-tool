@@ -118,6 +118,17 @@
       }
     },
     {
+      "id": "upgrade_bottom_frame",
+      "label": "Upgrade bottom frame",
+      "source": "../../OtherGameFiles/UnpackedImportant/2775/shapes/2775.svg",
+      "x": 66.5,
+      "y": 57,
+      "scaleX": 1,
+      "scaleY": 1,
+      "rotation": 0,
+      "visible": true
+    },
+    {
       "id": "side_frame",
       "label": "Class side frame",
       "source": "../../Gamefiles/testPassiveOrigSVG/2845(blacksideframe)/shapes/2845.svg",
